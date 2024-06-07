@@ -1,17 +1,9 @@
 (ns financeiro.saldo-aceitacao-test
     (:require [midje.sweet :refer :all]
-              [financeiro.handler :refer [app]]
-              [ring.adpter.jetty :refer [run-jetty]]))
+            [cheshire.core :as json]
+            [financeiro.auxiliares :refer :all]))
 
-(def servidor (atom nil))
-
-(defn iniciar-servidor [porta]
-    (swap! servidor
-        (fn [_] (run-jetty app {:port porta :join? false}))))
-
-(defn parar-servidor []
-    (.stop @servidor))
-
-(fact "Iniciar e parar o servidor"
-    (iniciar-servidor 3001)
-    (parar-servidor))
+(against-background [(before :facts (iniciar-servidor porta-padrao))
+                    (after :facts (parar-servidor))]
+    (fact "O Saldo inicial é 0" :aceitacao
+        (json/parse-string (conteudo "/saldo") true) => {:saldo 0}))
