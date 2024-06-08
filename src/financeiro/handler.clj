@@ -2,14 +2,32 @@
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [cheshire.core :as json]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
+            [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
+            [ring.middleware.json :refer [wrap-json-body]]
+            [financeiro.db :as db]
+            [financeiro.transacoes :as transacoes]))
+
+(defn como-json [conteudo & [status]]
+  {:status (or status 200)
+   :headers {"Content-Type" "application/json; charset=utf-8"}
+   :body (json/generate-string conteudo)})
 
 (defroutes app-routes
   (GET "/" [] "Ola mundo")
-  (GET "/saldo" [] {:headers {"Content-Type"
-                              "application/json; charset=utf-8"}
-                    :body (json/generate-string {:saldo 0})})
+  (GET "/saldo" [] (como-json {:saldo (db/saldo)}))
+  (POST "/transacoes" requisicao 
+    (if (transacoes/valida? (:body requisicao))
+    (-> (db/registrar (:body requisicao))
+    (como-json 201))
+    (como-json {:mensagem "Requisição invalida"} 422)))
+  (GET "/transacoes" [] 
+    (como-json {:transacoes (db/transacoes)}))
+  (GET "/receitas" []
+    (como-json {:transacoes (db/transacoes-do-tipo "receita")}))
+  (GET "/despesas" []
+    (como-json {:transacoes (db/transacoes-do-tipo "despesa")}))
   (route/not-found "Recurso não encontrado"))
 
 (def app
-  (wrap-defaults app-routes site-defaults))
+  (-> (wrap-defaults app-routes api-defaults)
+      (wrap-json-body {:keywords? true :bigdecimals? true})))

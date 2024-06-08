@@ -5,7 +5,7 @@
 
 (def servidor (atom nil))
 
-(def porta-padrao 3001)
+(def porta-padrao 4000)
 
 (defn endereco-para [rota] (str "http://localhost:" porta-padrao rota))
 
